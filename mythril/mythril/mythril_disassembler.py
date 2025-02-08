@@ -37,6 +37,7 @@ warnings.formatwarning = format_warning
 log = logging.getLogger(__name__)
 
 
+'''This Python file defines the MythrilDisassembler class, which is responsible for disassembling and analyzing Ethereum smart contracts. It provides functionality to load contracts from various sources (e.g., bytecode, on-chain addresses, Solidity source files, and Foundry projects), interact with Ethereum nodes, and extract storage data.'''
 class MythrilDisassembler:
     """
     The Mythril Disassembler class
@@ -215,6 +216,7 @@ class MythrilDisassembler:
                             self.sigs.add_sigs(original_filename, targets_json)
         return address, contracts
 
+    '''Checks if the integer overflow/underflow module should be run based on the Solidity version and the presence of unchecked blocks in the source code. '''
     def check_run_integer_module(self, source_file):
         with open(source_file, "r") as f:
             for line in f:
@@ -238,6 +240,8 @@ class MythrilDisassembler:
 
         return False
 
+    '''Compiles Solidity source files and loads the resulting contracts.
+    Returns the contract's address and a list of SolidityContract objects.'''
     def load_from_solidity(
         self, solidity_files: List[str]
     ) -> Tuple[str, List[SolidityContract]]:
@@ -325,6 +329,8 @@ class MythrilDisassembler:
         """
         return "0x%s" % sha3(func)[:4].hex()
 
+    '''Retrieves the value of a state variable from the contract's storage.
+    Supports simple variables, arrays, and mappings.'''
     def get_state_variable_from_storage(
         self, address: str, params: Optional[List[str]] = None
     ) -> str:

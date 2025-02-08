@@ -40,7 +40,24 @@ from mythril.support.support_args import args
 
 from .ops import Call, VarType, get_variable
 
+'''This module provides a wrapper around the LASER symbolic virtual machine (SVM) for analyzing smart contracts. It enhances symbolic execution by integrating different strategies, constraints, and analysis plugins to detect vulnerabilities in Ethereum smart contracts.
 
+Key Features:
+🔹 Initializes the Symbolic Execution Engine (LaserEVM)
+Sets up execution strategies (BFS, DFS, Beam Search, etc.).
+Configures execution depth, loop bounds, and transaction constraints.
+🔹 Handles Smart Contract Deployment & Execution
+Supports both contract creation and function execution.
+Loads contract bytecode and initializes accounts (e.g., attacker, creator).
+🔹 Implements Constraint Solving & Optimization
+Uses Z3 constraints to guide execution.
+Applies dependency pruning to improve efficiency.
+🔹 Loads Analysis Plugins for Vulnerability Detection
+Includes Call Depth Limit, Coverage Analysis, Instruction Profiling, and State Merging.
+Registers pre- and post-execution hooks for detecting issues dynamically.
+🔹 Extracts & Structures Execution Data
+Stores analyzed nodes, edges, and transaction sequences for further processing.
+Collects contract interactions (calls, transactions) for security testing.'''
 class SymExecWrapper:
     """Wrapper class for the LASER Symbolic virtual machine.
 

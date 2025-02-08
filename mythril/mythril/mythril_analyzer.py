@@ -31,6 +31,10 @@ class MythrilAnalyzer:
     """
     The Mythril Analyzer class
     Responsible for the analysis of the smart contracts
+    Uses symbolic execution to analyze smart contracts.
+    Generates call graphs and state space.
+    Runs Mythril’s security detectors (fire_lasers method).
+    Configurable parameters (e.g., execution timeout, search strategy, loop bounds).
     """
 
     def __init__(
