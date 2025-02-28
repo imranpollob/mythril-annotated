@@ -1,6 +1,6 @@
 TRANSFER_METHODS = ["transfer", "send"]
 
-
+'''analyze the Abstract Syntax Tree (AST) of Solidity smart contracts to extract various features and characteristics from the smart contract code'''
 class SolidityFeatureExtractor:
     def __init__(self, ast):
         self.ast = ast

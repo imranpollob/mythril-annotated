@@ -1,5 +1,4 @@
-"""This module contains general exceptions used by Mythril."""
-
+'''This module contains general exceptions used by Mythril.'''
 
 class MythrilBaseException(Exception):
     """The Mythril exception base type."""

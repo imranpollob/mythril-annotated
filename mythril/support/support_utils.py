@@ -11,7 +11,7 @@ from z3 import is_true
 
 log = logging.getLogger(__name__)
 
-
+'''A metaclass implementing the singleton pattern to ensure only one instance of a class exists.'''
 class Singleton(type):
     """A metaclass type implementing the singleton pattern."""
 
@@ -31,7 +31,7 @@ class Singleton(type):
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
 
-
+'''A class implementing a Least Recently Used (LRU) cache to store and retrieve items efficiently.'''
 class LRUCache:
     def __init__(self, size):
         self.size = size
@@ -53,7 +53,7 @@ class LRUCache:
                 self.lru_cache.popitem(last=False)
         self.lru_cache[key] = value
 
-
+'''A class that uses LRUCache to cache models and provides a method to quickly check satisfiability of constraints.'''
 class ModelCache:
     def __init__(self):
         self.model_cache = LRUCache(size=100)
@@ -70,7 +70,7 @@ class ModelCache:
     def put(self, key, value):
         self.model_cache.put(key, value)
 
-
+'''returns the keccak hash of the given bytecode.'''
 @lru_cache(maxsize=2**10)
 def get_code_hash(code) -> str:
     """
@@ -89,7 +89,7 @@ def get_code_hash(code) -> str:
         log.debug("Unable to change the bytecode to bytes. Bytecode: {}".format(code))
         return ""
 
-
+'''returns the keccak hash of the given value, which can be a string or bytes.'''
 def sha3(value):
     if isinstance(value, str):
         if value.startswith("0x"):

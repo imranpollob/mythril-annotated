@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 
 model_cache = ModelCache()
 
-
+'''create and solve an optimization model based on given constraints and optimization conditions.'''
 def solver_worker(
     constraints,
     minimize=(),
@@ -59,7 +59,7 @@ def solver_worker(
     result = s.check()
     return result, s
 
-
+'''solve an optimization problem based on given constraints and optimization conditions'''
 @lru_cache(maxsize=2**23)
 def get_model(
     constraints,

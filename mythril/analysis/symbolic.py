@@ -40,24 +40,10 @@ from mythril.support.support_args import args
 
 from .ops import Call, VarType, get_variable
 
-'''This module provides a wrapper around the LASER symbolic virtual machine (SVM) for analyzing smart contracts. It enhances symbolic execution by integrating different strategies, constraints, and analysis plugins to detect vulnerabilities in Ethereum smart contracts.
-
-Key Features:
-🔹 Initializes the Symbolic Execution Engine (LaserEVM)
-Sets up execution strategies (BFS, DFS, Beam Search, etc.).
-Configures execution depth, loop bounds, and transaction constraints.
-🔹 Handles Smart Contract Deployment & Execution
-Supports both contract creation and function execution.
-Loads contract bytecode and initializes accounts (e.g., attacker, creator).
-🔹 Implements Constraint Solving & Optimization
-Uses Z3 constraints to guide execution.
-Applies dependency pruning to improve efficiency.
-🔹 Loads Analysis Plugins for Vulnerability Detection
-Includes Call Depth Limit, Coverage Analysis, Instruction Profiling, and State Merging.
-Registers pre- and post-execution hooks for detecting issues dynamically.
-🔹 Extracts & Structures Execution Data
-Stores analyzed nodes, edges, and transaction sequences for further processing.
-Collects contract interactions (calls, transactions) for security testing.'''
+'''serves as a crucial bridge between Mythril's high-level analysis workflow and the lower-level symbolic execution engine provided by LASER. 
+It essentially wraps LASER's core components, specifically the LaserEVM, to provide a more convenient interface for setting up and running symbolic execution for security analysis. 
+The key purpose of this file is to take higher-level concepts like Solidity contracts, addresses, and analysis strategies, translate them into the appropriate LASER constructs, and then manage the execution process. 
+The goal is to provide an easier workflow for the Mythril analysis modules to interact with LASER.'''
 class SymExecWrapper:
     """Wrapper class for the LASER Symbolic virtual machine.
 
@@ -65,6 +51,13 @@ class SymExecWrapper:
     convenience.
     """
 
+    '''Initializes the SymExecWrapper. This is where the core LASER EVM is configured.
+    Logic:
+    - Sets up the specified execution strategy (BFS, DFS, etc.) using s_strategy.
+    - Configures the LASER EVM with the provided parameters (max depth, timeout, etc.).
+    - Sets up the initial blockchain state by creating Account objects for the creator and attacker.
+    - Registers the pre- and post-execution hooks for the specified analysis modules.
+    - Executes either the contract creation code (if provided) or a message call to the target address.'''
     def __init__(
         self,
         contract,
@@ -343,6 +336,7 @@ class SymExecWrapper:
 
                 state_index += 1
 
+    '''Returns the list of execution info generated during symbolic analysis.'''
     @property
     def execution_info(self) -> List[ExecutionInfo]:
         return self.laser.execution_info

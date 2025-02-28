@@ -12,6 +12,10 @@ from mythril.solidity.features import SolidityFeatureExtractor
 
 log = logging.getLogger(__name__)
 
+'''provide a structured way to represent and interact with Solidity smart contracts and their associated metadata. 
+- This includes parsing the Abstract Syntax Tree (AST) of Solidity files, 
+- extracting relevant features, and mapping source code to bytecode. 
+- retrieving contract data from Solidity files and Foundry JSON files'''
 
 class SolcAST:
     def __init__(self, ast):

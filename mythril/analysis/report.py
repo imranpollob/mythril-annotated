@@ -26,10 +26,11 @@ from mythril.support.support_utils import get_code_hash
 
 log = logging.getLogger(__name__)
 
+'''This file defines the classes that structure and generate vulnerability reports in Mythril. 
+convert issues found into the variety of formats'''
 
+'''represents a single security vulnerability found during the analysis and its location.'''
 class Issue:
-    """Representation of an issue and its location."""
-
     def __init__(
         self,
         contract: str,
@@ -78,23 +79,23 @@ class Issue:
         self.transaction_sequence = transaction_sequence
         self.source_location = source_location
 
+    """Returns the transaction sequence without pre-generated block data"""
     @property
     def transaction_sequence_users(self):
-        """Returns the transaction sequence without pre-generated block data"""
         return self.transaction_sequence
 
+    """Returns the transaction sequence as a json string with pre-generated block data"""
     @property
     def transaction_sequence_jsonv2(self):
-        """Returns the transaction sequence as a json string with pre-generated block data"""
         return (
             self.add_block_data(self.transaction_sequence)
             if self.transaction_sequence
             else None
         )
 
+    """Adds sane block data to a transaction_sequence"""
     @staticmethod
     def add_block_data(transaction_sequence: Dict):
-        """Adds sane block data to a transaction_sequence"""
         for step in transaction_sequence["steps"]:
             step["gasLimit"] = "0x7d000"
             step["gasPrice"] = "0x773594000"
@@ -105,6 +106,7 @@ class Issue:
             step["blockTime"] = "0x5bfa4639"
         return transaction_sequence
 
+    '''Returns the attributes of the issue as a dictionary.'''
     @property
     def as_dict(self):
         """
@@ -135,6 +137,7 @@ class Issue:
 
         return issue
 
+    '''Handles false positives relating to internal compiler generated code'''
     def _set_internal_compiler_error(self):
         """
         Adds the false positive to description and changes severity to low
@@ -146,6 +149,7 @@ class Issue:
         self.description = "%s\n%s" % (self.description_head, self.description_tail)
         self.code = ""
 
+    '''Adds source code information (filename, line number, code snippet) to the issue based on the address and the Solidity source code (if available)'''
     def add_code_info(self, contract):
         """
 
@@ -179,6 +183,7 @@ class Issue:
         else:
             self.source_mapping = self.address
 
+    '''Utility function to decode a byte.'''
     @staticmethod
     def decode_bytes(val):
         if isinstance(val, bytes):
@@ -188,6 +193,7 @@ class Issue:
         else:
             return val
 
+    '''Resolves function names for each step of the transaction_sequence using signatures from SignatureDB'''
     def resolve_function_names(self):
         """Resolves function names for each step"""
 
@@ -222,11 +228,9 @@ class Issue:
             except ValueError:
                 step["name"] = "unknown"
 
+    '''Adds decoded calldata to the tx sequence'''
     @staticmethod
     def resolve_input(data, function_name):
-        """
-        Adds decoded calldate to the tx sequence.
-        """
         data = data[10:]
 
         # Eliminates the first and last brackets
@@ -246,11 +250,8 @@ class Issue:
         except Exception:
             return None
 
-
+'''Converts bytes to a serializable format. Handles nested iterables.'''
 def convert_bytes(item):
-    """
-    Converts bytes to a serializable format. Handles nested iterables.
-    """
     if isinstance(item, bytes):
         return item.hex()
     elif isinstance(item, Iterable) and not isinstance(item, (str, bytes)):
@@ -259,10 +260,8 @@ def convert_bytes(item):
     else:
         return item
 
-
+'''This class represents the overall report containing multiple issues, metadata, and source code information.'''
 class Report:
-    """A report containing the content of multiple issues."""
-
     environment = Environment(
         loader=PackageLoader("mythril.analysis"), trim_blocks=True
     )
@@ -286,6 +285,7 @@ class Report:
         self.exceptions = exceptions or []
         self.execution_info = execution_info or []
 
+    '''Returns a list of issues sorted by address and title.'''
     def sorted_issues(self):
         """
 
@@ -294,6 +294,7 @@ class Report:
         issue_list = [issue.as_dict for key, issue in self.issues.items()]
         return sorted(issue_list, key=operator.itemgetter("address", "title"))
 
+    '''Adds an Issue object to the issues dictionary.'''
     def append_issue(self, issue):
         """
 
@@ -308,6 +309,7 @@ class Report:
         issue.resolve_function_names()
         self.issues[m.digest()] = issue
 
+    '''Generates a text-based report.'''
     def as_text(self):
         """
 
@@ -318,6 +320,7 @@ class Report:
 
         return template.render(filename=name, issues=self.sorted_issues())
 
+    '''Generates a JSON report.'''
     def as_json(self):
         """
 
@@ -327,6 +330,7 @@ class Report:
 
         return json.dumps(result, sort_keys=True)
 
+    '''Returns any exception data that happened during execution to be added to the report'''
     def _get_exception_data(self) -> dict:
         if not self.exceptions:
             return {}
@@ -335,6 +339,7 @@ class Report:
             logs += [{"level": "error", "hidden": True, "msg": exception}]
         return {"logs": logs}
 
+    '''Generates a JSON-based report in SWC Standard Format.'''
     def as_swc_standard_format(self):
         """Format defined for integration and correlation.
 
@@ -392,6 +397,7 @@ class Report:
 
         return json.dumps(result, sort_keys=True)
 
+    '''Generates a Markdown-based report.'''
     def as_markdown(self):
         """
 
@@ -401,6 +407,7 @@ class Report:
         template = Report.environment.get_template("report_as_markdown.jinja2")
         return template.render(filename=filename, issues=self.sorted_issues())
 
+    '''Returns the filename of the first issue.'''
     def _file_name(self):
         """
 

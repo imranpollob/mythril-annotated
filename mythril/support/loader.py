@@ -13,7 +13,7 @@ LRU_CACHE_SIZE = 4096
 
 log = logging.getLogger(__name__)
 
-
+'''dynamically load storage values, balances, and contract code from the Ethereum blockchain, with caching and error handling mechanisms to ensure efficient and reliable operation.'''
 class DynLoader:
     """The dynamic loader class."""
 

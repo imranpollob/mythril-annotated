@@ -10,7 +10,7 @@ credits: https://github.com/dmfrey/FileLock
 class LockFileException(Exception):
     pass
 
-
+'''managing file locks, ensuring that only one process can access a file at a time and preventing potential data corruption or race conditions.'''
 class LockFile(object):
     """
     Locks files.

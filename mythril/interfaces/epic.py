@@ -52,7 +52,7 @@ COLOR_ANSI = (
     (0xFF, 0xFF, 0xFF),
 )
 
-
+'''a utility module for handling colorful and animated text output on terminal sessions.'''
 class LolCat(object):
     """Cats lel."""
 

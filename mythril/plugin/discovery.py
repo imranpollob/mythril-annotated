@@ -9,7 +9,8 @@ from typing import Any, Dict, List, Optional
 from mythril.plugin.interface import MythrilPlugin
 from mythril.support.support_utils import Singleton
 
-
+'''responsible for discovering and building plugins.
+locates installed plugins via Python's entry points (using either pkg_resources or importlib.metadata)'''
 class PluginDiscovery(object, metaclass=Singleton):
     """PluginDiscovery class
 

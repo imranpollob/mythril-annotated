@@ -14,7 +14,9 @@ log = logging.getLogger(__name__)
 
 lock = multiprocessing.Lock()
 
+'''manages the function signature database, which maps 4-byte function signatures to their corresponding text signatures. This is useful for identifying and resolving function names from their hashed signatures in Ethereum smart contracts.'''
 
+'''A decorator to synchronize multi-process access to a resource using a lock.'''
 def synchronized(sync_lock):
     """A decorator synchronizing multi-process access to a resource."""
 
@@ -40,7 +42,7 @@ def synchronized(sync_lock):
 
     return wrapper
 
-
+'''A metaclass implementing the singleton pattern to ensure only one instance of a class exists.'''
 class Singleton(type):
     """A metaclass type implementing the singleton pattern."""
 
@@ -62,7 +64,7 @@ class Singleton(type):
 
         return cls._instances[cls]
 
-
+'''A context manager for SQLite databases that handles connection setup and teardown, ensuring commits on exit.'''
 class SQLiteDB(object):
     """Simple context manager for sqlite3 databases.
 
@@ -103,7 +105,7 @@ class SQLiteDB(object):
     def __repr__(self):
         return "<SQLiteDB path={}>".format(self.path)
 
-
+''' manages the function signature database, providing methods to add and retrieve function signatures, and import signatures from Solidity source files.'''
 class SignatureDB(object, metaclass=Singleton):
     """"""
 

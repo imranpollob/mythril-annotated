@@ -126,6 +126,10 @@ phrack_color = {
 }
 
 
+'''contains the logic for generating a call graph representation of a smart contract's control flow. The call graph visually represents the different functions within the contract and how they call each other, along with the conditions under which these calls occur. It utilizes Jinja2 templating to produce an HTML-based visualization of the graph, leveraging the Vis.js JavaScript library for interactive graph rendering.'''
+
+
+''' Extracts nodes (representing functions or code blocks) from the given statespace and creates a list of dictionaries, each containing visual attributes for representing the nodes in the graph.'''
 def extract_nodes(statespace) -> List[Dict]:
     """
     Extract nodes from the given statespace and create a list of node dictionaries
@@ -133,6 +137,14 @@ def extract_nodes(statespace) -> List[Dict]:
 
     :param statespace: The statespace object containing nodes and states information.
     :return: A list of dictionaries representing each node with its attributes.
+    
+    Logic:
+    - Iterates through the nodes in the statespace. 
+    - For each node, extracts the instructions or code snippets associated with that node.
+    - Formats the extracted code to fit inside the node (e.g., truncating long snippets and replacing JUMPDEST with function names).
+    - Assigns a color to the node based on its contract name.
+    - Creates a dictionary representing the node, including its ID, label, color, size, and other visual attributes.
+    - Returns a list of these node dictionaries.
     """
     nodes = []
     color_map = {}
@@ -182,12 +194,20 @@ def extract_nodes(statespace) -> List[Dict]:
 
     return nodes
 
-
+'''Extracts edges (representing function calls or control flow transitions) from the given statespace and creates a list of dictionaries, each containing attributes for representing the edges in the graph.'''
 def extract_edges(statespace):
     """
+    Extract edges from the given statespace and create a list of edge dictionaries
+    with attributes for graph representation.
 
-    :param statespace:
-    :return:
+    :param statespace: The statespace object containing edges and states information.
+    :return: A list of dictionaries representing each edge with its attributes.
+    
+    Logic:
+    - Iterates through the edges in the statespace.
+    - Extracts the condition associated with the edge (if any) and simplifies it using Z3.
+    - Creates a dictionary representing the edge, including its source node ID (from), destination node ID (to), direction (arrows), and label (condition).
+    - Returns a list of these edge dictionaries.
     """
     edges = []
     for edge in statespace.edges:
@@ -214,7 +234,7 @@ def extract_edges(statespace):
         )
     return edges
 
-
+'''Generates the final HTML representation of the call graph.'''
 def generate_graph(
     statespace,
     title="Mythril / Ethereum LASER Symbolic VM",
@@ -222,12 +242,17 @@ def generate_graph(
     phrackify=False,
 ):
     """
-
     :param statespace:
     :param title:
     :param physics:
     :param phrackify:
     :return:
+    
+    Logic:
+    - Creates a Jinja2 environment and loads the callgraph.html template.
+    - Calls extract_nodes() and extract_edges() to get the node and edge data from the statespace.
+    - Renders the template with the node data, edge data, title, and other configuration options.
+    - Returns the rendered HTML string.
     """
     env = Environment(
         loader=PackageLoader("mythril.analysis"),

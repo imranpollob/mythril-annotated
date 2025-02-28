@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 """mythril.py: Bug hunting on the Ethereum blockchain
 
+provides the command line interface for Mythril. It defines and configures the argument parsers for the various commands (such as analyze, disassemble, concolic execution, safe-functions check, etc.) and options related to Ethereum smart contract analysis. 
+
 http://www.github.com/ConsenSys/mythril
 """
 
@@ -62,7 +64,7 @@ COMMAND_LIST = (
     )
 )
 
-
+'''Handles errors by printing messages in different formats (text, json, markdown) and exiting.'''
 def exit_with_error(format_, message):
     """
     Exits with error
@@ -234,7 +236,7 @@ def create_concolic_parser(parser: ArgumentParser) -> ArgumentParser:
     )
     return parser
 
-
+'''Serves as the entry point for the CLI, combining the parsers and executing the command based on user inputs.Serves as the entry point for the CLI, combining the parsers and executing the command based on user inputs.'''
 def main() -> None:
     """The main CLI interface entry point."""
 

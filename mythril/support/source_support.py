@@ -1,7 +1,7 @@
 from mythril.ethereum.evmcontract import EVMContract
 from mythril.solidity.soliditycontract import SolidityContract
 
-
+'''manages the source type, format, and list of source files or bytecode hashes.'''
 class Source:
     """Class to handle to source data"""
 

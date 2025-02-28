@@ -10,6 +10,7 @@ ADDRESS = "address"
 
 # Gas tuple contains (min_gas, max_gas)
 # stack tuple contains (no_of_elements_popped, no_of_elements_pushed)
+'''Each opcode is represented as a key in the dictionary, and the value include GAS, STACK, and ADDRESS'''
 
 # TODO: Make this more specific when TypedDict supports key re-usage.
 OPCODES: Dict = {

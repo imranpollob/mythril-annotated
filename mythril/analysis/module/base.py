@@ -17,7 +17,10 @@ from mythril.support.support_utils import get_code_hash
 # Get logger instance
 log = logging.getLogger(__name__)
 
+'''This file defines the foundation for all security detection modules used in Mythril. 
+It establishes the DetectionModule abstract base class (ABC), which serves as the template for creating custom security analysis rules (new detection capabilities)'''
 
+'''specifies when a detection module is executed during the analysis process'''
 class EntryPoint(Enum):
     """EntryPoint Enum
 
@@ -28,7 +31,7 @@ class EntryPoint(Enum):
     POST = 1
     CALLBACK = 2
 
-
+''' The abstract base class for all detection modules.'''
 class DetectionModule(ABC):
     """The base detection module.
 
@@ -57,10 +60,12 @@ class DetectionModule(ABC):
         self.cache: Set[Tuple[int, str]] = set()
         self.auto_cache = True
 
+    '''Resets the state of the module.'''
     def reset_module(self):
         """Resets the storage of this module"""
         self.issues = []
 
+    '''updates cache for deduplication purposes'''
     def update_cache(self, issues=None):
         """
         Updates cache with param issues, updates against self.issues, if the param is None
@@ -70,6 +75,7 @@ class DetectionModule(ABC):
         for issue in issues:
             self.cache.add((issue.address, issue.bytecode_hash))
 
+    ''' The main entry point for executing the detection module. This method is called by Mythril and takes either a global state or the statespace as its target. It calls the internal _execute() method (which must be implemented by subclasses) and handles caching and error logging.'''
     def execute(self, target: GlobalState) -> Optional[List[Issue]]:
         """The entry point for execution, which is being called by Mythril.
 
@@ -107,6 +113,7 @@ class DetectionModule(ABC):
         """
         pass
 
+    '''A string representation of the module for easier debugging.'''
     def __repr__(self) -> str:
         return (
             "<"

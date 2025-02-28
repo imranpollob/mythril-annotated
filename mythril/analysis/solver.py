@@ -25,10 +25,17 @@ z3.set_option(
 )
 
 
-'''This Python module provides helper functions for solving path constraints in the context of symbolic execution for Ethereum smart contracts. It is part of the Mythril tool, which performs security analysis on smart contracts. The module uses the Z3 SMT solver to generate concrete transaction sequences and states that satisfy the constraints derived during symbolic execution.'''
+'''This module provides helper functions for interacting with the Z3 SMT solver to solve path constraints generated during symbolic execution. 
+Its main purpose is to convert symbolic execution traces into concrete transaction sequences by finding solutions to the constraints accumulated along those paths.
+'''
 
+'''SMT Solver: An SMT (Satisfiability Modulo Theories) solver is a tool that can determine whether a set of logical formulas (constraints) has a solution. Z3 is a popular and powerful SMT solver.
 
+Path Constraints: During symbolic execution, the tool tracks the conditions that must be true for a specific execution path to be taken. These conditions are expressed as logical formulas and are known as path constraints.
 
+Concrete Execution: Symbolic execution generates symbolic states that are defined based on logical constraints. In order to create real transactions that trigger vulnerabilities, these symbolic states must be converted into real states by plugging in concrete (i.e. real) values to variables.'''
+
+'''Provides a human-readable representation of a Z3 model,'''
 def pretty_print_model(model):
     """Pretty prints a z3 model
     
@@ -55,7 +62,7 @@ def pretty_print_model(model):
     return ret
 
 
-'''This function generates a concrete sequence of transactions from a symbolic execution state by solving constraints with Z3. It ensures that transactions have real, executable values (calldata, sender, receiver, value) and structures them properly for testing, replaying, and security analysis.'''
+'''Generates a concrete transaction sequence that satisfies the given constraints, starting from a symbolic execution state.'''
 def get_transaction_sequence(
     global_state: GlobalState, constraints: Constraints
 ) -> Dict[str, Any]:
@@ -66,16 +73,16 @@ def get_transaction_sequence(
     :param global_state: GlobalState to generate transaction sequence for
     :param constraints: list of constraints used to generate transaction sequence
     
-    
-    Steps:
-    1. Extracts the transaction sequence from the global state.
-    2. Adds minimization constraints (e.g., minimizing calldata size and call value).
-    3. Solves the constraints using Z3 to get a concrete model.
-    4. Converts the symbolic transactions into concrete transactions.
-    5. Replaces symbolic SHA3 hashes with concrete values.
-    6. Adds calldata placeholders to the transactions.
-
-    Returns the initial state and the transaction sequence.
+    Logic:
+    1. Extracts the transaction sequence from the global_state.
+    2. Sets minimisation constraints using _set_minimisation_constraints.
+    3. Adds constraints to minimize calldata size and value.
+    4. Ensures accounts have sufficient balances.
+    5. Uses the Z3 SMT solver (through the get_model function from mythril.support.model) to find a concrete model (a solution) that satisfies the constraints. If the model is unsat, it throws the UnsatError.
+    6. Iterates through the symbolic transactions in the sequence and converts them into concrete transactions using _get_concrete_transaction. This involves evaluating symbolic variables (such as function inputs, transfer amounts, and account balances) in the model to obtain concrete values.
+    7. Replaces symbolic SHA3 hashes in the input with concrete values using _replace_with_actual_sha.
+    8. Adds a calldata placeholder to the concrete transactions with _add_calldata_placeholder.
+    9. Returns a dictionary containing the initial state and the transaction sequence, all populated with concrete values.
     """
     # Extracts the transaction sequence from the global state.
     transaction_sequence = global_state.world_state.transaction_sequence
@@ -121,19 +128,7 @@ def get_transaction_sequence(
 
     return steps
 
-'''The function _add_calldata_placeholder ensures that each concrete transaction includes a calldata field by copying its input data. Additionally, for contract creation transactions, it removes the contract bytecode from the calldata, leaving only the relevant function arguments. This ensures that calldata is correctly structured for both regular contract calls and contract deployments. 
-
-✅ 1. Ensures Transactions Have a calldata Field
-calldata is essential for executing contract calls, as it contains function selectors and arguments.
-This function ensures every transaction explicitly includes a calldata field by copying input.
-✅ 2. Handles Contract Creation Differently
-When a contract is deployed, the input data contains both:
-Contract bytecode (to deploy the contract).
-Constructor arguments (if any).
-This function removes the bytecode part, leaving only the constructor arguments in calldata.
-✅ 3. Prevents Errors in Further Processing
-Some parts of the analysis might expect a calldata field.
-Without this function, transactions might lack calldata, leading to incorrect behavior.'''
+'''Adds a "calldata" key to each concrete transaction dictionary, populating it with the "input" data. This is necessary because some parts of Mythril expect transactions to have explicit "calldata" fields. Additionally, it removes the contract code in the calldata for contract creation'''
 def _add_calldata_placeholder(
     concrete_transactions: List[Dict[str, str]],
     transaction_sequence: List[BaseTransaction],
@@ -157,9 +152,7 @@ def _add_calldata_placeholder(
         code_len + 2 :
     ]
 
-
-
-'''This function replaces symbolic Keccak-256 hash values in a list of concrete transactions with their actual computed values. It ensures that any placeholders or symbolic representations of hash values in tx["input"] are converted into real, concrete hash values.'''
+'''Replace all symbolic sha values on the input field with concrete values'''
 def _replace_with_actual_sha(
     concrete_transactions: List[Dict[str, str]], model: z3.Model, code=None
 ):
@@ -200,7 +193,7 @@ def _replace_with_actual_sha(
                 tx["input"][i : 64 + i], hex_keccak
             )
 
-'''This function extracts concrete blockchain account states from a symbolic execution environment. It processes each account and converts its symbolic attributes (nonce, balance, storage, and code) into real-world values that can be used for analysis, testing, or transaction simulations.'''
+'''Extracts concrete account states from a symbolic execution environment.'''
 def _get_concrete_state(
     initial_accounts: Dict, min_price_dict: Dict[str, int]
 ) -> Dict[str, Dict]:
@@ -218,7 +211,7 @@ def _get_concrete_state(
     return {"accounts": accounts}
 
 
-'''This function extracts concrete values from a symbolic transaction using a Z3 model and converts them into a real-world executable transaction format.'''
+'''Converts a symbolic transaction into a concrete transaction by evaluating symbolic variables in a Z3 model.'''
 def _get_concrete_transaction(model: z3.Model, transaction: BaseTransaction):
     """Gets a concrete transaction from a transaction and z3 model"""
     # Get concrete values from transaction
@@ -263,23 +256,7 @@ def _get_concrete_transaction(model: z3.Model, transaction: BaseTransaction):
 
     return concrete_transaction
 
-'''Purpose
-Upper bounds on calldata size to prevent excessive inputs.
-Minimization of call_value and calldata size for efficient test case generation.
-Sufficient balances for transactions to prevent invalid execution.
-Realistic account balances to avoid unrealistic test cases.
-
-Necessity:
-✅ 1. Reduces Computational Complexity
-Prevents unnecessary large inputs that would slow down symbolic execution.
-Helps the solver find vulnerabilities faster.
-✅ 2. Ensures Realistic Transactions
-Without constraints, unrealistically large values could be generated.
-This function keeps transactions within feasible blockchain limits.
-✅ 3. Prevents False Positives & False Negatives
-Ensures accounts have enough ETH to send transactions.
-Prevents unrealistic balances that could skew vulnerability analysis.
-'''
+'''Set constraints that minimise key transaction values'''
 def _set_minimisation_constraints(
     transaction_sequence, constraints, minimize, max_size, world_state
 ) -> Tuple[Constraints, tuple]:

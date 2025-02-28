@@ -31,7 +31,9 @@ to get the necessary elements from the stack and determine the parameters for th
 log = logging.getLogger(__name__)
 SYMBOLIC_CALLDATA_SIZE = 320  # Used when copying symbolic calldata
 
+'''This file defines the logic for handling EVM CALL-like instructions (CALL, CALLCODE, DELEGATECALL, STATICCALL) within Mythril's symbolic execution engine. It determines the parameters for these calls, gets the necessary data from the stack, performs native contract calls (if applicable), and sets up the state for executing the called contract. Its main purpose is to ensure that the call instructions are correctly handled according to EVM specifications.'''
 
+'''Pops the parameters from the global state and determines call outputs.'''
 def get_call_parameters(
     global_state: GlobalState, dynamic_loader: DynLoader, with_value=False
 ):
@@ -76,12 +78,12 @@ def get_call_parameters(
         memory_out_size,
     )
 
-
+'''Utility function to format an address as a hex string with leading zeros.'''
 def _get_padded_hex_address(address: int) -> str:
     hex_address = hex(address)[2:]
     return "0x{}{}".format("0" * (40 - len(hex_address)), hex_address)
 
-
+'''Determines the concrete or symbolic address that the call is directed to, using both direct values, and if required using dynamic loading to resolve a contract address from storage.'''
 def get_callee_address(
     global_state: GlobalState,
     dynamic_loader: DynLoader,
@@ -125,7 +127,7 @@ def get_callee_address(
 
     return callee_address
 
-
+'''Returns the account instance to which a call is being performed.'''
 def get_callee_account(
     global_state: GlobalState,
     callee_address: Union[str, BitVec],
@@ -148,7 +150,7 @@ def get_callee_account(
         callee_address, dynamic_loader
     )
 
-
+'''Returns the calldata with the given offset and size from the memory'''
 def get_call_data(
     global_state: GlobalState,
     memory_start: Union[int, BitVec],
@@ -194,7 +196,7 @@ def get_call_data(
         log.debug("Unsupported symbolic memory offset and size")
         return SymbolicCalldata(transaction_id)
 
-
+'''Handles calls to native (precompiled) contracts.'''
 def native_call(
     global_state: GlobalState,
     callee_address: Union[str, BitVec],

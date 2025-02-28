@@ -2,7 +2,9 @@ from abc import ABC
 
 from mythril.laser.plugin.builder import PluginBuilder as LaserPluginBuilder
 
+'''defines the base interfaces for plugins'''
 
+'''The core plugin interface which includes metadata about the plugin'''
 class MythrilPlugin:
     """MythrilPlugin interface
 
@@ -27,7 +29,7 @@ class MythrilPlugin:
         plugin_name = type(self).__name__
         return f"{plugin_name} - {self.plugin_version} - {self.author}"
 
-
+'''define plugins that add commands to the Mythril CLI.'''
 class MythrilCLIPlugin(MythrilPlugin):
     """MythrilCLIPlugin interface
 
@@ -36,7 +38,7 @@ class MythrilCLIPlugin(MythrilPlugin):
 
     pass
 
-
+'''intended for plugins that modify or extend the behavior of the Mythril Laser analysis engine.'''
 class MythrilLaserPlugin(MythrilPlugin, LaserPluginBuilder, ABC):
     """Mythril Laser Plugin interface
 

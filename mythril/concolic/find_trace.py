@@ -16,7 +16,9 @@ from mythril.laser.plugin.plugins import TraceFinderBuilder
 from mythril.laser.smt import symbol_factory
 from mythril.support.support_args import args
 
+'''finding a concrete trace – a specific sequence of instructions executed by the EVM given a concrete initial state and input data. This is an essential first step in concolic execution, where this trace will then be used to guide symbolic execution and explore alternative paths.'''
 
+'''Initializes a WorldState object based on the information provided in the concrete_data. This prepares the initial state for the concrete execution.'''
 def setup_concrete_initial_state(concrete_data: ConcreteData) -> WorldState:
     """
     Sets up concrete initial state
@@ -37,7 +39,7 @@ def setup_concrete_initial_state(concrete_data: ConcreteData) -> WorldState:
         account.set_balance(int(details["balance"], 16))
     return world_state
 
-
+'''Executes the smart contract concretely, following the steps outlined in the concrete_data, and finds the code trace that has been executed.'''
 def concrete_execution(concrete_data: ConcreteData) -> Tuple[WorldState, List]:
     """
     Executes code concretely to find the path to be followed by concolic executor

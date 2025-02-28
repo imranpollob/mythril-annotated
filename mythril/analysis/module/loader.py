@@ -28,7 +28,7 @@ from mythril.exceptions import DetectorNotFoundError
 from mythril.support.support_args import args
 from mythril.support.support_utils import Singleton
 
-
+''' responsible for discovering, registering, and providing access to the detection modules'''
 class ModuleLoader(object, metaclass=Singleton):
     """ModuleLoader
 
@@ -42,12 +42,14 @@ class ModuleLoader(object, metaclass=Singleton):
         self._modules = []
         self._register_mythril_modules()
 
+    '''Registers a new detection module with the module loader. This allows you to add custom-built detection modules to Mythril.'''
     def register_module(self, detection_module: DetectionModule):
         """Registers a detection module with the module loader"""
         if not isinstance(detection_module, DetectionModule):
             raise ValueError("The passed variable is not a valid detection module")
         self._modules.append(detection_module)
 
+    '''Retrieves a list of registered detection modules, optionally filtering them based on their entry point and/or a whitelist of module names.'''
     def get_detection_modules(
         self,
         entry_point: Optional[EntryPoint] = None,
@@ -87,6 +89,7 @@ class ModuleLoader(object, metaclass=Singleton):
 
         return result
 
+    '''Registers the default detection modules that are included with Mythril.'''
     def _register_mythril_modules(self):
         self._modules.extend(
             [

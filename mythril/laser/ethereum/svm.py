@@ -33,6 +33,7 @@ from mythril.support.support_args import args
 
 log = logging.getLogger(__name__)
 
+'''This file defines LaserEVM, the core component of Mythril's symbolic execution engine. It is responsible for taking smart contract bytecode and symbolically executing it, exploring possible execution paths based on the rules of the Ethereum Virtual Machine (EVM). It manages the global state, execution strategy, and interactions with the outside world (dynamic loading, hook execution). '''
 
 class SVMError(Exception):
     """An exception denoting an unexpected state in symbolic execution."""
@@ -144,10 +145,12 @@ class LaserEVM:
             "transaction_end": self._transaction_end_hooks,
         }
         log.info("LASER EVM initialized with dynamic loader: " + str(dynamic_loader))
-
+    
+    '''Extends current strategy with another by injecting it'''
     def extend_strategy(self, extension: ABCMeta, **kwargs) -> None:
         self.strategy = extension(self.strategy, **kwargs)
 
+    '''Starts symbolic execution'''
     def sym_exec(
         self,
         world_state: WorldState = None,
@@ -155,17 +158,24 @@ class LaserEVM:
         creation_code: str = None,
         contract_name: str = None,
     ) -> None:
-        """Starts symbolic execution
+        """
+        Starts symbolic execution
         There are two modes of execution.
         Either we analyze a preconfigured configuration, in which case the world_state and target_address variables
         must be supplied.
         Or we execute the creation code of a contract, in which case the creation code and desired name of that
         contract should be provided.
 
-        :param world_state The world state configuration from which to perform analysis
-        :param target_address The address of the contract account in the world state which analysis should target
-        :param creation_code The creation code to create the target contract in the symbolic environment
-        :param contract_name The name that the created account should be associated with
+        :param world_state: The world state configuration from which to perform analysis
+        :param target_address: The address of the contract account in the world state which analysis should target
+        :param creation_code: The creation code to create the target contract in the symbolic environment
+        :param contract_name: The name that the created account should be associated with
+        
+        Logic:
+        * Determines the analysis mode (pre-configured state or contract creation).
+        * Sets time_handler.start_execution() with the execution timeout.
+        * If in pre-configured mode, it creates the initial state and calls execute_transactions.
+        * If in scratch mode, creates a new contract by calling execute_contract_creation.
         """
         pre_configuration_mode = target_address is not None
         scratch_mode = creation_code is not None and contract_name is not None
@@ -217,12 +227,17 @@ class LaserEVM:
         for hook in self._stop_sym_exec_hooks:
             hook()
 
+    '''This function helps runs plugins that can order transactions.'''
     def execute_transactions(self, address) -> None:
         """This function helps runs plugins that can order transactions.
         Such plugins should set self.executed_transactions as True after its execution
 
         :param address: Address of the contract
         :return: None
+        
+        Logic:
+        * This runs hooks that can be used to reorder transactions according to the smart contract and a user preference.
+        * If no such plugin reorders the transactions, it simply executes all transactions.
         """
         for hook in self._start_exec_trans_hooks:
             hook()
@@ -238,6 +253,7 @@ class LaserEVM:
         for hook in self._stop_exec_trans_hooks:
             hook()
 
+    '''This function executes multiple transactions non-incrementally, using a tx strategy which takes the form of a list of list of function hashes'''
     def _execute_transactions_non_ordered(self, address):
         """
         This function executes multiple transactions non-incrementally, using some type priority ordering
@@ -249,6 +265,7 @@ class LaserEVM:
             log.info(f"Executing the sequence: {txs}")
             self._execute_transactions_incremental(address, txs=txs)
 
+    '''This function executes multiple transactions incrementaly using a tx strategy that assumes the hashes are executed one after the other'''
     def _execute_transactions_incremental(self, address, txs=None):
         """This function executes multiple transactions incrementally on the address
 
@@ -308,6 +325,7 @@ class LaserEVM:
 
         self.executed_transactions = True
 
+    '''Checks if the create timeout is surpassed during an execution.'''
     def _check_create_termination(self) -> bool:
         if len(self.open_states) != 0:
             return (
@@ -316,18 +334,28 @@ class LaserEVM:
             )
         return self._check_execution_termination()
 
+    '''Checks if the execution timeout is surpassed during an execution.'''
     def _check_execution_termination(self) -> bool:
         return (
             self.execution_timeout > 0
             and self.time + timedelta(seconds=self.execution_timeout) <= datetime.now()
         )
 
+    '''Executes the symbolic execution loop, processing each state until a termination condition is met.'''
     def exec(self, create=False, track_gas=False) -> Optional[List[GlobalState]]:
         """
-
         :param create:
         :param track_gas:
         :return:
+        
+        Logic:
+        * Iterates through open_states based on search strategy.
+        * Executes pre- and post-hooks for each state.
+        * Calls the execute_state function to execute the instruction.
+        * Checks the amount of gas consumed and prunes states that consume more than allowed.
+        * Calls manage_cfg() to manage nodes and edges based on this state.
+        * Handles the case where execution is complete.
+        * Sets the return value from a finished execution.
         """
         final_states: List[GlobalState] = []
         for hook in self._start_exec_hooks:
@@ -367,6 +395,7 @@ class LaserEVM:
 
         return final_states if track_gas else None
 
+    '''Adds a world state to the open states'''
     def _add_world_state(self, global_state: GlobalState):
         """Stores the world_state of the passed global state in the open states"""
 
@@ -378,6 +407,7 @@ class LaserEVM:
 
         self.open_states.append(global_state.world_state)
 
+    '''Handle exceptions from the EVM'''
     def handle_vm_exception(
         self, global_state: GlobalState, op_code: str, error_msg: str
     ) -> List[GlobalState]:
@@ -397,6 +427,7 @@ class LaserEVM:
             )
         return new_global_states
 
+    '''Executes a single instruction.'''
     def execute_state(
         self, global_state: GlobalState
     ) -> Tuple[List[GlobalState], Optional[str]]:
@@ -404,6 +435,12 @@ class LaserEVM:
 
         :param global_state:
         :return: A list of successor states.
+        
+        Logic:
+        * Gets the current instruction from the global state.
+        * Calls the evaluate() method of the appropriate Instruction class (from mythril.laser.ethereum.instructions) to execute the instruction.
+        * Handles VmException
+        * Returns a list of new global states (representing the possible outcomes of the instruction)
         """
         # Execute hooks
         try:
@@ -576,6 +613,7 @@ class LaserEVM:
 
         return new_global_states
 
+    '''Manages the Control Flow Graph (CFG) based on the results of instruction execution.'''
     def manage_cfg(self, opcode: str, new_states: List[GlobalState]) -> None:
         """
 
@@ -599,6 +637,7 @@ class LaserEVM:
         for state in new_states:
             state.node.states.append(state)
 
+    '''Adds a new node state to the cfg.'''
     def _new_node_state(
         self, state: GlobalState, edge_type=JumpType.UNCONDITIONAL, condition=None
     ) -> None:
@@ -664,6 +703,7 @@ class LaserEVM:
 
         new_node.function_name = environment.active_function_name
 
+    '''Registers hooks to code, to be executed during execution.'''
     def register_hooks(self, hook_type: str, hook_dict: Dict[str, List[Callable]]):
         """
 
@@ -682,6 +722,7 @@ class LaserEVM:
         for op_code, funcs in hook_dict.items():
             entrypoint[op_code].extend(funcs)
 
+    '''Registers the hook_type for this LaserVM.'''
     def register_laser_hooks(self, hook_type: str, hook: Callable):
         """registers the hook with this Laser VM"""
 
@@ -690,6 +731,7 @@ class LaserEVM:
         else:
             raise ValueError(f"Invalid hook type {hook_type}")
 
+    '''Registers instruction hooks from plugins'''
     def register_instr_hooks(self, hook_type: str, opcode: str, hook: Callable):
         """Registers instructions hooks from plugins"""
         if hook_type == "pre":
@@ -705,6 +747,7 @@ class LaserEVM:
             else:
                 self.instr_post_hook[opcode].append(hook)
 
+    '''Registers the annotated function with register_instr_hooks'''
     def instr_hook(self, hook_type, opcode) -> Callable:
         """Registers the annotated function with register_instr_hooks
 
@@ -721,6 +764,7 @@ class LaserEVM:
 
         return hook_decorator
 
+    '''Registers the annotated function with register_laser_hooks'''
     def laser_hook(self, hook_type: str) -> Callable:
         """Registers the annotated function with register_laser_hooks
 
@@ -738,6 +782,7 @@ class LaserEVM:
 
         return hook_decorator
 
+    '''Executes pre-execution hooks for the given opcode.'''
     def _execute_pre_hook(self, op_code: str, global_state: GlobalState) -> None:
         """
 
@@ -750,6 +795,7 @@ class LaserEVM:
         for hook in self.pre_hooks[op_code]:
             hook(global_state)
 
+    '''Executes post-execution hooks for the given opcode.'''
     def _execute_post_hook(
         self, op_code: str, global_states: List[GlobalState]
     ) -> None:
@@ -769,6 +815,7 @@ class LaserEVM:
                 except PluginSkipState:
                     global_states.remove(global_state)
 
+    '''Used to register hooks, decorators for pre_hooks'''
     def pre_hook(self, op_code: str) -> Callable:
         """
 
@@ -789,6 +836,7 @@ class LaserEVM:
 
         return hook_decorator
 
+    '''Used to register hooks, decorators for post_hooks'''
     def post_hook(self, op_code: str) -> Callable:
         """
 

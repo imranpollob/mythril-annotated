@@ -16,7 +16,7 @@ class UnsupportedPluginType(Exception):
 
     pass
 
-
+'''provide a centralized mechanism for loading plugins into the Mythril framework'''
 class MythrilPluginLoader(object, metaclass=Singleton):
     """MythrilPluginLoader singleton
 

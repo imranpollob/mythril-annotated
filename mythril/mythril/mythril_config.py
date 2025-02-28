@@ -12,7 +12,8 @@ from mythril.support.lock import LockFile
 
 log = logging.getLogger(__name__)
 
-'''This Python file defines the MythrilConfig class, which is responsible for managing the configuration and setup of the Mythril tool. Mythril is a security analysis tool for Ethereum smart contracts, and this class handles tasks such as initializing the Mythril directory, managing configuration files, and setting up connections to Ethereum nodes (e.g., Infura or local nodes). '''
+'''This class manages Mythril's configuration.
+- initializing the Mythril directory, managing configuration files, and setting up connections to Ethereum nodes (e.g., Infura or local nodes). '''
 class MythrilConfig:
     """
     The Mythril Analyzer class

@@ -37,15 +37,9 @@ warnings.formatwarning = format_warning
 log = logging.getLogger(__name__)
 
 
-'''This Python file defines the MythrilDisassembler class, which is responsible for disassembling and analyzing Ethereum smart contracts. It provides functionality to load contracts from various sources (e.g., bytecode, on-chain addresses, Solidity source files, and Foundry projects), interact with Ethereum nodes, and extract storage data.'''
+'''responsible for disassembling and analyzing Ethereum smart contracts. It primarily handles loading contract code from various sources, interacting with Ethereum nodes if needed, and preparing the contract for subsequent analysis by other Mythril components (especially the symbolic execution engine)'''
 class MythrilDisassembler:
-    """
-    The Mythril Disassembler class
-    Responsible for generating disassembly of smart contracts:
-        - Compiles solc code from file/onchain
-        - Can also be used to access onchain storage data
-    """
-
+    '''Initializes a MythrilDisassembler object'''
     def __init__(
         self,
         eth: Optional[EthJsonRpc] = None,
@@ -61,6 +55,7 @@ class MythrilDisassembler:
         self.sigs = signatures.SignatureDB()
         self.contracts: List[EVMContract] = []
 
+    '''Sets solc compiler based on the version. It gets the system solc if the version is not provided.'''
     @staticmethod
     def _init_solc_binary(version: str) -> Optional[str]:
         """
@@ -96,6 +91,7 @@ class MythrilDisassembler:
 
         return solc_binary
 
+    '''Loads contract information from raw bytecode.'''
     def load_from_bytecode(
         self, code: str, bin_runtime: bool = False, address: Optional[str] = None
     ) -> Tuple[str, EVMContract]:
@@ -109,6 +105,7 @@ class MythrilDisassembler:
         if address is None:
             address = util.get_indexed_address(0)
 
+        '''Specifies if the bytecode is runtime bytecode (the code executed after deployment) or creation bytecode'''
         if bin_runtime:
             self.contracts.append(
                 EVMContract(
@@ -125,6 +122,7 @@ class MythrilDisassembler:
             )
         return address, self.contracts[-1]  # return address and contract object
 
+    '''Loads contract information from an on-chain address.'''
     def load_from_address(self, address: str) -> Tuple[str, EVMContract]:
         """
         Returns the contract given it's on chain address
@@ -140,6 +138,7 @@ class MythrilDisassembler:
             )
 
         try:
+            ''' fetch the contract code from the blockchain.'''
             code = self.eth.eth_getCode(address)
         except FileNotFoundError as e:
             raise CriticalError("IPC error: " + str(e))
@@ -158,11 +157,13 @@ class MythrilDisassembler:
             self.contracts.append(EVMContract(code, name=address))
         return address, self.contracts[-1]  # return address and contract object
 
+    '''Loads contract information from a Foundry project.'''
     def load_from_foundry(self):
         project_root = os.getcwd()
 
         cmd = ["forge", "build", "--build-info", "--force"]
 
+        '''Runs forge commands to build foundry project'''
         with subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -216,7 +217,8 @@ class MythrilDisassembler:
                             self.sigs.add_sigs(original_filename, targets_json)
         return address, contracts
 
-    '''Checks if the integer overflow/underflow module should be run based on the Solidity version and the presence of unchecked blocks in the source code. '''
+    '''Checks if the integer overflow/underflow module should be run based on the Solidity version
+    Check for the presence of unchecked blocks in the source code.'''
     def check_run_integer_module(self, source_file):
         with open(source_file, "r") as f:
             for line in f:
@@ -320,6 +322,7 @@ class MythrilDisassembler:
 
         return address, contracts
 
+    '''Returns the signature hash of the given function'''
     @staticmethod
     def hash_for_function_signature(func: str) -> str:
         """
@@ -327,6 +330,7 @@ class MythrilDisassembler:
         :param func: function name
         :return: Its hash signature
         """
+        '''Hashes the function name and extracts the first 4 bytes as the function signature.'''
         return "0x%s" % sha3(func)[:4].hex()
 
     '''Retrieves the value of a state variable from the contract's storage.

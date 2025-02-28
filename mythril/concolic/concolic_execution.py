@@ -13,7 +13,9 @@ from mythril.laser.ethereum.transaction.transaction_models import tx_id_manager
 from mythril.laser.smt import symbol_factory
 from mythril.support.support_args import args
 
+'''generate concrete input that can trigger specific branches'''
 
+'''Flips specified branches in the smart contract by generating new inputs.'''
 def flip_branches(
     init_state: WorldState,
     concrete_data: ConcreteData,
@@ -58,7 +60,7 @@ def flip_branches(
             output_list.append(laser_evm.strategy.results[addr])
     return output_list
 
-
+'''Orchestrates the concolic execution process.'''
 def concolic_execution(
     concrete_data: ConcreteData, jump_addresses: List, solver_timeout=100000
 ) -> List[Dict[str, Dict[str, Any]]]:

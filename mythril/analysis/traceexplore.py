@@ -51,13 +51,30 @@ colors = [
     },
 ]
 
+'''converting the symbolic execution state space into a serializable format that can be used for exploration and visualization. 
+It takes the statespace object (which is a representation of the execution paths explored by the symbolic execution engine) and transforms it into a set of nodes and edges, each with specific attributes suitable for representing a graph structure in a user interface or other analytical tools. 
+The module focuses on structuring and formatting the data rather than performing new analysis.'''
 
-'''This Python file is a module designed to convert a state space (a representation of all possible states and transitions in a smart contract's execution) into a set of state nodes and transition edges. These nodes and edges can then be used to visualize the state space, such as in a graph or diagram. '''
+'''Converts the given statespace into a dictionary containing lists of nodes and edges, all of which are in a serializable format (e.g., ready for conversion to JSON).'''
 def get_serializable_statespace(statespace):
     """
-
     :param statespace:
     :return:
+    
+    Logic:
+    - Initializes empty lists nodes and edges to store the serialized nodes and edges, respectively.
+    - Creates a color_map to assign a unique color to each contract in the state space, making it easier to visually distinguish between different contracts in the graph.
+    - Iterates through the nodes in the statespace and extracts relevant information from each node, including:
+        - The code associated with the node, formatted for display (truncated for brevity).
+        - Machine state and account information from the node's states.
+        - Visual attributes such as color and label.
+    - Creates a dictionary (s_node) to represent the serialized node, containing the extracted information.
+    - Appends the serialized node to the nodes list.
+    - Iterates through the edges in the statespace and extracts relevant information from each edge, including the source node ID (from), destination node ID (to), and the condition (if any) associated with the edge.
+    - Creates a dictionary (s_edge) to represent the serialized edge, containing the extracted information.
+    - Appends the serialized edge to the edges list.
+    - Returns a dictionary containing the nodes and edges lists.
+    - Adds information about the accounts into each states data for displaying in a UI
     """
     nodes = []  # A list to store serialized nodes.
     edges = []  # A list to store serialized edges.
@@ -184,21 +201,3 @@ def get_serializable_statespace(statespace):
     return {"edges": edges, "nodes": nodes}
 
 
-'''
-Key Concepts:
-
-State Space:
-Represents all possible states and transitions in a smart contract's execution.
-Includes nodes (states) and edges (transitions between states).
-
-Serialization:
-Converts the state space into a format that can be easily stored, transmitted, or visualized.
-
-Visualization:
-The serialized output can be used to generate graphs or diagrams, where:
-Nodes represent states (e.g., program counter, stack, memory).
-Edges represent transitions between states (e.g., conditional jumps).
-
-Color Mapping:
-Each contract is assigned a unique color scheme to differentiate it in visualizations.
-'''

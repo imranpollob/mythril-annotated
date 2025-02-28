@@ -19,11 +19,16 @@ log = logging.getLogger(__name__)
 
 predictable_ops = ["COINBASE", "GASLIMIT", "TIMESTAMP", "NUMBER"]
 
+'''This module is designed to detect when control flow in a smart contract depends on predictable environment variables (such as block.coinbase, block.gaslimit, block.timestamp or block.number). If the contract’s jump conditions (or other decisions) are influenced by such variables, an issue is reported. There are two main types of annotations used:
+
+PredictableValueAnnotation: Marks a symbolic variable that was initialized from a predictable environment variable.
+OldBlockNumberUsedAnnotation: Marks a case when an old block number (or block hash) is used.'''
 
 class PredictableValueAnnotation:
     """Symbol annotation used if a variable is initialized from a predictable environment variable."""
 
     def __init__(self, operation: str) -> None:
+        '''Stores the value of operation for later use'''
         self.operation = operation
 
 
@@ -56,6 +61,8 @@ class PredictableVariables(DetectionModule):
         """
         return self._analyze_state(state)
 
+    '''Parameter state represents the current symbolic global state of the EVM.
+    It returns a list of Issue objects – each representing a detected vulnerability.'''
     def _analyze_state(self, state: GlobalState) -> List[Issue]:
         """
 
@@ -65,20 +72,26 @@ class PredictableVariables(DetectionModule):
 
         issues = []
 
+        '''Checks if the analysis is currently in a pre-hook context. A “pre-hook” generally means before the opcode is executed.'''
         if is_prehook():
+            '''Retrieves the opcode of the current instruction from the state. This tells us what operation is being executed (e.g., "JUMPI" or "BLOCKHASH")'''
             opcode = state.get_current_instruction()["opcode"]
 
             if opcode == "JUMPI":
                 # Look for predictable state variables in jump condition
 
+                '''Iterates over the annotations of the second-to-top element on the EVM stack. In a typical JUMPI, the condition is often the second element on the stack'''
                 for annotation in state.mstate.stack[-2].annotations:
                     if isinstance(annotation, PredictableValueAnnotation):
+                        '''Retrieves the current set of constraints from the global state. These constraints define the conditions under which the state is reached.'''
                         constraints = state.world_state.constraints
                         try:
+                            '''Attempts to generate a concrete transaction sequence for the state given the constraints'''
                             transaction_sequence = solver.get_transaction_sequence(
                                 state, constraints
                             )
                         except UnsatError:
+                            '''If the constraints are unsatisfiable (raising an UnsatError), skip this annotation'''
                             continue
                         description = (
                             annotation.operation
@@ -135,6 +148,8 @@ class PredictableVariables(DetectionModule):
             elif opcode == "BLOCKHASH":
                 param = state.mstate.stack[-1]
 
+                '''First constraint: ULT(param, state.environment.block_number) ensures that the block number parameter (param) is less than the current block number.
+                Second constraint: Ensures that the current block number is less than 2**255, preventing an overflow which might occur in the solver.'''
                 constraint = [
                     ULT(param, state.environment.block_number),
                     ULT(
@@ -146,10 +161,11 @@ class PredictableVariables(DetectionModule):
                 # Why the second constraint? Because without it Z3 returns a solution where param overflows.
 
                 try:
+                    '''Tries to obtain a model with the combined current constraints plus the new constraint.'''
                     solver.get_model(
                         state.world_state.constraints + constraint  # type: ignore
                     )
-
+                    '''If successful, it then annotates the state'''
                     state.annotate(OldBlockNumberUsedAnnotation())
 
                 except UnsatError:
@@ -158,13 +174,14 @@ class PredictableVariables(DetectionModule):
         else:
             # we're in post hook
 
+            '''Retrieves the opcode of the last executed instruction. This is done by accessing the instruction list at position pc - 1 (where pc is the program counter).'''
             opcode = state.environment.code.instruction_list[state.mstate.pc - 1][
                 "opcode"
             ]
 
             if opcode == "BLOCKHASH":
                 # if we're in the post hook of a BLOCKHASH op, check if an old block number was used to create it.
-
+                '''Uses cast to ensure these annotations are seen as a list of OldBlockNumberUsedAnnotation.'''
                 annotations = cast(
                     List[OldBlockNumberUsedAnnotation],
                     list(state.get_annotations(OldBlockNumberUsedAnnotation)),
